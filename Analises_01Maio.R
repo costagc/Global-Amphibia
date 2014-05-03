@@ -125,5 +125,6 @@ for (i in 1:length(tabela.species[,1])){
   table.int[i,13] <- ur.area
 }
 table.final <- cbind(tabela.species[,1],table.int)
+colnames(table.final)[1] <- 'Species'
 head(table.final)
-write.csv(table.final, '~/Dropbox/allamphibians IUCN_July/Final/table_species_May14.csv')
+write.csv(table.final, '~/Dropbox/allamphibians IUCN_July/Final/table_species_May14.csv',row.names=F)
