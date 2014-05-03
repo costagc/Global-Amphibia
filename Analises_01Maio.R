@@ -78,23 +78,52 @@ hidro.crop2 <- resample(hidro.crop,alt.crop)
 
 hidro.sum <- zonal(hidro.crop2, zone, fun = 'sum')
 xy.zone <- xyFromCell(alt.1dgr,1:ncell(alt.1dgr))
+xy.zone <- xy.zone + 0.5
 hidro.table <- as.data.frame(cbind(xy.zone, hidro.sum))
 head(hidro.table)
 dim(hidro.table)
 
-
-test <- DFtoRaster(siteXspp,d=4)
-plot(test)
-
-#####merging evrything#####
+#####merging everything#####
 head(siteXspp[,1:6])
 head(tabela.cell[,c(1,2,7:27,33)])
-
 head(hidro.table[,-c(3)])
 
 table.cell.int <- merge(siteXspp[,1:6],tabela.cell[,c(1,2,7:27,33)])
+table.cell.final <- merge(table.cell.int,hidro.table[,-c(3)])
+head(table.cell.final)
+write.csv(table.cell.final, '~/Dropbox/allamphibians IUCN_July/Final/table_cell_May14.csv',row.names=F)
 
+#############Species database###########
+head(subset(tabela.species, Species == 'Rhinella marina'))
+head(tabela.species[,1:20])
+variables= stack(alt.crop,hidro.crop2)
 
-#########testing#####
-rm(test)
+table.int <-as.data.frame(matrix(nrow=length(tabela.species[,1]),ncol=13))
+colnames(table.int) <- c('alt_mean','alt_sd','floodedforest','intermitent','lake','marsh','peatland','reservoir','riveronly','wet0_25','wet25_50','wet50_100','dist_area')
+head(table.int)
 
+poly <- readOGR(dsn='mapas subset',layer='amph_phylo') ## ler shapefile
+a <- unique(poly$BINOMIAL)
+
+for (i in 1:length(tabela.species[,1])){
+  maps <- poly[poly$BINOMIAL == a[i],]
+  table.int[i,1] <- mean(extract(variables[[1]],maps,fun=mean,na.rm=T),na.rm=T)
+  table.int[i,2] <- mean(extract(variables[[1]],maps,fun=sd,na.rm=T),na.rm=T)
+  table.int[i,3] <- sum(extract(variables[[2]],maps,fun=sum,na.rm=T),na.rm=T)
+  table.int[i,4] <- sum(extract(variables[[3]],maps,fun=sum,na.rm=T),na.rm=T)
+  table.int[i,5] <- sum(extract(variables[[4]],maps,fun=sum,na.rm=T),na.rm=T)
+  table.int[i,6] <- sum(extract(variables[[5]],maps,fun=sum,na.rm=T),na.rm=T)
+  table.int[i,7] <- sum(extract(variables[[6]],maps,fun=sum,na.rm=T),na.rm=T)
+  table.int[i,8] <- sum(extract(variables[[7]],maps,fun=sum,na.rm=T),na.rm=T)
+  table.int[i,9] <- sum(extract(variables[[8]],maps,fun=sum,na.rm=T),na.rm=T)
+  table.int[i,10] <- sum(extract(variables[[9]],maps,fun=sum,na.rm=T),na.rm=T)
+  table.int[i,11] <- sum(extract(variables[[10]],maps,fun=sum,na.rm=T),na.rm=T)
+  table.int[i,12] <- sum(extract(variables[[11]],maps,fun=sum,na.rm=T),na.rm=T)
+  summary(maps)
+  getClass("Polygon")
+  ur.area<-sum(sapply(slot(maps, "polygons"), function(x) sapply(slot(x, "Polygons"), slot, "area")))
+  table.int[i,13] <- ur.area
+}
+table.final <- cbind(tabela.species[,1],table.int)
+head(table.final)
+write.csv(table.final, '~/Dropbox/allamphibians IUCN_July/Final/table_species_May14.csv')
