@@ -20,6 +20,7 @@ alt.1dgr <- aggregate(alt,120)
 
 hidro <- stack(floodedforest,intermitent,lake,marsh,peatland,reservoir,riveronly,wet0_25,wet25_50,wet50_100)
 names(hidro) <- c('floodedforest','intermitent','lake','marsh','peatland','reservoir','riveronly','wet0_25','wet25_50','wet50_100')
+rm(floodedforest,intermitent,lake,marsh,peatland,reservoir,riveronly,wet0_25,wet25_50,wet50_100)
 
 hidro1dgr <- aggregate(hidro,fact=120,fun=sum)
 hidro1dgr.crop <- crop(hidro1dgr,alt.1dgr)
@@ -28,14 +29,13 @@ cafs = raster('~/Documents/Manuscripts/ProjetoMarilia/CAFS/cafs.grd')
 variables <- stack(alt.1dgr,bio1dgr,hidro1dgr.crop.res,cafs)
 
 tabela <- read.csv('~/Dropbox/allamphibians IUCN_July/Final/tabela_species_final.csv')
-head(tabela[,1:4])
 
 poligonos <- readOGR(dsn='/Users/gabriel/Documents/Dados/Dados Distribuição/Distribuição IUCN/AMPHANURA',layer='Amphibians_Anura')
-especies <- sort(unique(poligonos@data$BINOMIAL))
+##especies <- sort(unique(poligonos@data$BINOMIAL))###
 especies <- as.vector(tabela[,2])
 
-table.int <-as.data.frame(matrix(nrow=length(especies),ncol=32))
-colnames(table.int) <- c('alt_mean','alt_sd',names(bio1dgr),names(hidro1dgr.crop.res),'cafs')
+table.int <-as.data.frame(matrix(nrow=length(especies),ncol=33))
+colnames(table.int) <- c('alt_mean','alt_sd',names(bio1dgr),names(hidro1dgr.crop.res),'cafs','area')
 head(table.int)
 
 require(doSNOW)
@@ -75,13 +75,20 @@ for (i in 1:5593){
   table.int[i,30] <- sum(extract(variables[[29]],maps,fun=sum,na.rm=T,small=T),na.rm=T)
   table.int[i,31] <- sum(extract(variables[[30]],maps,fun=sum,na.rm=T,small=T),na.rm=T)
   table.int[i,32] <- sum(extract(variables[[31]],maps,fun=sum,na.rm=T,small=T),na.rm=T)
+  table.int[i,33] <- gArea(maps)
 }
 stopCluster(cl)
 table.final <- cbind(especies,table.int)
 write.csv(table.final, '~/Dropbox/allamphibians IUCN_July/Final/table_species_17May14.csv',row.names=F)
 
-
-
-
-
+require(rgeos)
+x <- matrix(nrow=5593,ncol=1)
+cl<-makeCluster(5,"SOCK")
+registerDoSNOW(cl)
+for (i in 1:5593){
+  maps <- poligonos[poligonos$BINOMIAL == especies[i],]
+  area <- gArea(maps)
+  x[i,1]<-area
+}
+stopCluster(cl)
 
